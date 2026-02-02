@@ -1,0 +1,17 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/analytics/api/data"
+  },
+  "response": {
+    "status": 202,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "status": "accepted",
+      "submission_id": "SUB_12345678",
+      "message": "Data accepted for processing"
+    }
+  }
+}

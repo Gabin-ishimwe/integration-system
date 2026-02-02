@@ -1,0 +1,64 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: integration-producer
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: admin
+    password: admin123
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+# Mock Service Configuration
+mock-service:
+  base-url: http://localhost:8081
+  auth:
+    username: crm_user
+    password: crm_password
+
+# RabbitMQ Queue Configuration
+rabbitmq:
+  queues:
+    customer-data: customer.data.queue
+    inventory-data: inventory.data.queue
+  exchanges:
+    integration: integration.exchange
+  routing-keys:
+    customer: customer.data
+    inventory: inventory.data
+
+# Scheduler Configuration
+scheduler:
+  customer-fetch-cron: "0 */10 * * * *"
+  inventory-fetch-cron: "0 */5 * * * *"
+  enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    root: INFO
+    com.example.producer: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  rabbitmq:
+    host: rabbitmq
+  data:
+    redis:
+      host: redis
+
+mock-service:
+  base-url: http://mock-service:8081

@@ -1,0 +1,13 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/crm/soap/customers"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "text/xml; charset=utf-8"
+    },
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <AddCustomerResponse xmlns=\"http://example.com/crm\">\n      <status>SUCCESS</status>\n      <customerId>CUST_NEW_001</customerId>\n      <message>Customer created successfully</message>\n    </AddCustomerResponse>\n  </soap:Body>\n</soap:Envelope>"
+  }
+}

@@ -1,0 +1,71 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: mock-service
+  main:
+    web-application-type: servlet
+
+# WireMock Configuration - runs on separate port
+wiremock:
+  server:
+    port: 8081
+    verbose: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+
+info:
+  app:
+    name: ${spring.application.name}
+    description: Mock Service with WireMock for Integration Pipeline
+    version: 1.0.0
+    wiremock-port: ${wiremock.server.port}
+
+logging:
+  level:
+    root: INFO
+    com.example.mockservice: DEBUG
+    com.github.tomakehurst.wiremock: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+
+wiremock:
+  server:
+    port: 8081
+    verbose: false
+
+logging:
+  level:
+    root: INFO
+    com.example.mockservice: INFO
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+
+wiremock:
+  server:
+    port: 9091
+    verbose: false
+
+logging:
+  level:
+    root: WARN
+    com.example.mockservice: DEBUG

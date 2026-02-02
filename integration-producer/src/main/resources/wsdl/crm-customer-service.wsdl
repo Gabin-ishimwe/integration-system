@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+                  xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+                  xmlns:tns="http://example.com/crm"
+                  xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                  targetNamespace="http://example.com/crm"
+                  name="CrmCustomerService">
+
+    <wsdl:types>
+        <xsd:schema targetNamespace="http://example.com/crm">
+
+            <xsd:element name="AddCustomerRequest">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="firstName" type="xsd:string"/>
+                        <xsd:element name="lastName" type="xsd:string"/>
+                        <xsd:element name="email" type="xsd:string"/>
+                        <xsd:element name="phone" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+            <xsd:element name="AddCustomerResponse">
+                <xsd:complexType>
+                    <xsd:sequence>
+                        <xsd:element name="status" type="xsd:string"/>
+                        <xsd:element name="customerId" type="xsd:string"/>
+                        <xsd:element name="message" type="xsd:string"/>
+                    </xsd:sequence>
+                </xsd:complexType>
+            </xsd:element>
+
+        </xsd:schema>
+    </wsdl:types>
+
+    <wsdl:message name="AddCustomerRequestMessage">
+        <wsdl:part name="parameters" element="tns:AddCustomerRequest"/>
+    </wsdl:message>
+
+    <wsdl:message name="AddCustomerResponseMessage">
+        <wsdl:part name="parameters" element="tns:AddCustomerResponse"/>
+    </wsdl:message>
+
+    <wsdl:portType name="CrmCustomerPortType">
+        <wsdl:operation name="AddCustomer">
+            <wsdl:input message="tns:AddCustomerRequestMessage"/>
+            <wsdl:output message="tns:AddCustomerResponseMessage"/>
+        </wsdl:operation>
+    </wsdl:portType>
+
+    <wsdl:binding name="CrmCustomerBinding" type="tns:CrmCustomerPortType">
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+        <wsdl:operation name="AddCustomer">
+            <soap:operation soapAction="http://example.com/crm/AddCustomer"/>
+            <wsdl:input>
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output>
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+
+    <wsdl:service name="CrmCustomerService">
+        <wsdl:port name="CrmCustomerPort" binding="tns:CrmCustomerBinding">
+            <soap:address location="http://localhost:8081/crm/soap/customers"/>
+        </wsdl:port>
+    </wsdl:service>
+
+</wsdl:definitions>
