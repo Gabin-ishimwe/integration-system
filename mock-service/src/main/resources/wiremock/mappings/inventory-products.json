@@ -1,7 +1,13 @@
 {
+  "priority": 1,
   "request": {
     "method": "GET",
-    "urlPathPattern": "/inventory/api/products.*"
+    "urlPathPattern": "/inventory/api/products.*",
+    "headers": {
+      "Authorization": {
+        "equalTo": "Bearer mock_token_12345"
+      }
+    }
   },
   "response": {
     "status": 200,

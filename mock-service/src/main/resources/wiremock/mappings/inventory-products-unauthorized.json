@@ -1,0 +1,18 @@
+{
+  "priority": 10,
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/inventory/api/products.*"
+  },
+  "response": {
+    "status": 401,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "error": "Unauthorized",
+      "message": "Missing or invalid Authorization header",
+      "status": 401
+    }
+  }
+}

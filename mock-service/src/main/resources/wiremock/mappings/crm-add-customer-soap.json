@@ -8,6 +8,6 @@
     "headers": {
       "Content-Type": "text/xml; charset=utf-8"
     },
-    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <AddCustomerResponse xmlns=\"http://example.com/crm\">\n      <status>SUCCESS</status>\n      <customerId>CUST_NEW_001</customerId>\n      <message>Customer created successfully</message>\n    </AddCustomerResponse>\n  </soap:Body>\n</soap:Envelope>"
+    "body": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\">\n  <soap:Body>\n    <ns2:AddCustomerResponse xmlns:ns2=\"http://example.com/crm\">\n      <status>SUCCESS</status>\n      <customerId>CUST_NEW_001</customerId>\n      <message>Customer created successfully</message>\n    </ns2:AddCustomerResponse>\n  </soap:Body>\n</soap:Envelope>"
   }
 }

@@ -1,7 +1,13 @@
 {
+  "priority": 1,
   "request": {
     "method": "GET",
-    "urlPathPattern": "/crm/api/customers.*"
+    "urlPathPattern": "/crm/api/customers.*",
+    "headers": {
+      "Authorization": {
+        "equalTo": "Bearer mock_token_12345"
+      }
+    }
   },
   "response": {
     "status": 200,
