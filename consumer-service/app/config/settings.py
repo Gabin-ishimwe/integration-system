@@ -2,6 +2,12 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # Server
+    server_port: int = 8084
+
+    # Integration Producer
+    producer_base_url: str = "http://localhost:8082"
+
     # RabbitMQ
     rabbitmq_host: str = "localhost"
     rabbitmq_port: int = 5672

@@ -22,9 +22,25 @@ spring:
 analytics:
   producer:
     base-url: http://localhost:8082
+  consumer:
+    base-url: http://localhost:8084
 
 logging:
   level:
     root: INFO
     com.example.analytics: DEBUG
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://postgres:5432/analytics_db
+
+analytics:
+  producer:
+    base-url: http://integration-producer:8082
+  consumer:
+    base-url: http://consumer-service:8084
 
