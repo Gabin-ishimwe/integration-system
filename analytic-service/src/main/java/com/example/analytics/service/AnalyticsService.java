@@ -8,14 +8,16 @@ import com.example.analytics.repository.ProductRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AnalyticsService {
@@ -24,24 +26,19 @@ public class AnalyticsService {
 
     private final CustomerRepository customerRepository;
     private final ProductRepository productRepository;
-    private final StringRedisTemplate redisTemplate;
-    private final WebClient webClient;
-    private final String cacheKeyLatest;
+    private final RestTemplate restTemplate;
+    private final String producerBaseUrl;
 
     public AnalyticsService(
         CustomerRepository customerRepository,
         ProductRepository productRepository,
-        StringRedisTemplate redisTemplate,
-        @Value("${analytics.cache.latest-key}") String cacheKeyLatest,
+        RestTemplate restTemplate,
         @Value("${analytics.producer.base-url}") String producerBaseUrl
     ) {
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
-        this.redisTemplate = redisTemplate;
-        this.cacheKeyLatest = cacheKeyLatest;
-        this.webClient = WebClient.builder()
-            .baseUrl(producerBaseUrl)
-            .build();
+        this.restTemplate = restTemplate;
+        this.producerBaseUrl = producerBaseUrl;
     }
 
     @Transactional
@@ -52,7 +49,6 @@ public class AnalyticsService {
         }
 
         List<CustomerEntity> updatedCustomers = new ArrayList<>();
-        List<ProductEntity> newProducts = new ArrayList<>();
 
         for (AnalyticsDtos.AnalyticsRecord record : batch.data()) {
             if (record.customer() == null || record.products() == null || record.products().isEmpty()) {
@@ -74,7 +70,6 @@ public class AnalyticsService {
                 customer.setLastAnalyticsTimestamp(Instant.parse(record.timestamp()));
             }
 
-            // Reset existing products for this customer to keep a simple model
             if (customer.getId() != null) {
                 productRepository.deleteAll(customer.getProducts());
                 customer.getProducts().clear();
@@ -89,7 +84,6 @@ public class AnalyticsService {
                 product.setStockLevel(p.stock_level());
                 product.setCustomer(customer);
                 customer.getProducts().add(product);
-                newProducts.add(product);
             }
 
             updatedCustomers.add(customer);
@@ -97,42 +91,71 @@ public class AnalyticsService {
 
         if (!updatedCustomers.isEmpty()) {
             customerRepository.saveAll(updatedCustomers);
-            // products are cascaded from customer, no need to saveAll(newProducts) explicitly
-        }
-
-        // Cache the raw batch JSON for fast read access
-        try {
-            String serialized = "{\"batchNumber\":\"" + batch.batchNumber() + "\",\"data\":" + toJsonArray(batch.data()) + "}";
-            redisTemplate.opsForValue().set(cacheKeyLatest, serialized);
-        } catch (Exception e) {
-            log.warn("Failed to cache analytics batch in Redis", e);
+            log.info("Saved {} customers to database", updatedCustomers.size());
         }
     }
 
-    public String getLatestCachedBatch() {
-        return redisTemplate.opsForValue().get(cacheKeyLatest);
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getAllCustomersWithProducts() {
+        List<CustomerEntity> customers = customerRepository.findAll();
+        List<Map<String, Object>> result = new ArrayList<>();
+
+        for (CustomerEntity customer : customers) {
+            Map<String, Object> customerData = new HashMap<>();
+            customerData.put("id", customer.getExternalId());
+            customerData.put("name", customer.getName());
+            customerData.put("email", customer.getEmail());
+            customerData.put("phone", customer.getPhone());
+            customerData.put("status", customer.getStatus());
+            customerData.put("lastBatchNumber", customer.getLastBatchNumber());
+
+            List<Map<String, Object>> products = new ArrayList<>();
+            for (ProductEntity product : customer.getProducts()) {
+                Map<String, Object> productData = new HashMap<>();
+                productData.put("id", product.getExternalId());
+                productData.put("name", product.getName());
+                productData.put("category", product.getCategory());
+                productData.put("price", product.getPrice());
+                productData.put("stockLevel", product.getStockLevel());
+                products.add(productData);
+            }
+            customerData.put("products", products);
+
+            Map<String, Object> summary = new HashMap<>();
+            summary.put("totalProducts", products.size());
+            summary.put("totalValue", customer.getProducts().stream()
+                .map(ProductEntity::getPrice)
+                .filter(p -> p != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+            customerData.put("summary", summary);
+
+            result.add(customerData);
+        }
+
+        return result;
     }
 
-    /**
-     * Trigger a full refresh of analytics data by calling integration-producer,
-     * which will in turn talk to mock-service and publish new data to RabbitMQ.
-     */
     public void triggerRefresh() {
         log.info("Triggering refresh via integration-producer /api/trigger/fetch-all");
-        webClient.post()
-            .uri("/api/trigger/fetch-all")
-            .retrieve()
-            .toBodilessEntity()
-            .block();
+        restTemplate.postForObject(producerBaseUrl + "/api/trigger/fetch-all", null, Map.class);
     }
 
-    // Very small helper to avoid pulling an entire JSON library, since Spring will handle normal (de)serialization.
-    private String toJsonArray(List<AnalyticsDtos.AnalyticsRecord> records) {
-        // We don't need perfect JSON here – this is only used for quick inspection / cache,
-        // and the canonical representation is in Postgres.
-        // For simplicity, delegate to Jackson through Spring if needed later.
-        // For now just return "[]" placeholder to keep logic minimal.
-        return "[]";
+    public Map<String, Object> addCustomerViaSoap(String firstName, String lastName, String email, String phone) {
+        log.info("Adding customer via SOAP: {} {}", firstName, lastName);
+
+        Map<String, String> request = new HashMap<>();
+        request.put("first_name", firstName);
+        request.put("last_name", lastName);
+        request.put("email", email);
+        request.put("phone", phone);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> response = restTemplate.postForObject(
+            producerBaseUrl + "/api/trigger/add-customer-soap",
+            request,
+            Map.class
+        );
+
+        return response;
     }
 }
-

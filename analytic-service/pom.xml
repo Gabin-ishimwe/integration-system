@@ -38,18 +38,6 @@
             <artifactId>postgresql</artifactId>
         </dependency>
 
-        <!-- Redis cache -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
-
-        <!-- For making HTTP calls to integration-producer -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webflux</artifactId>
-        </dependency>
-
         <!-- Lombok (optional, compile-time only) -->
         <dependency>
             <groupId>org.projectlombok</groupId>

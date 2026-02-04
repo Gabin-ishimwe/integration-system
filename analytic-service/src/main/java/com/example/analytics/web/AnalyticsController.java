@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,14 +23,6 @@ public class AnalyticsController {
         this.analyticsService = analyticsService;
     }
 
-    /**
-     * Endpoint that consumer-service posts its merged batch to.
-     * Expected body:
-     * {
-     *   "batchNumber": "BATCH_001",
-     *   "data": [ { merge_id, customer, products, summary, timestamp }, ... ]
-     * }
-     */
     @PostMapping("/data")
     public ResponseEntity<Map<String, Object>> ingestAnalytics(@RequestBody AnalyticsDtos.AnalyticsBatchRequest batch) {
         log.info("Received analytics batch, batchNumber={}", batch.batchNumber());
@@ -42,23 +35,12 @@ public class AnalyticsController {
         return ResponseEntity.accepted().body(result);
     }
 
-    /**
-     * Simple endpoint to read the latest cached analytics batch from Redis.
-     */
-    @GetMapping("/data/latest")
-    public ResponseEntity<?> getLatestAnalytics() {
-        String cached = analyticsService.getLatestCachedBatch();
-        if (cached == null) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.ok(cached);
+    @GetMapping("/customers")
+    public ResponseEntity<List<Map<String, Object>>> getAnalyticsData() {
+        List<Map<String, Object>> data = analyticsService.getAllCustomersWithProducts();
+        return ResponseEntity.ok(data);
     }
 
-    /**
-     * Endpoint to request a full refresh of analytics data.
-     * This will call integration-producer, which in turn calls mock-service
-     * and publishes new data onto RabbitMQ for consumer-service to process.
-     */
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refreshAnalytics() {
         analyticsService.triggerRefresh();
@@ -67,5 +49,26 @@ public class AnalyticsController {
         result.put("status", "refresh-triggered");
         return ResponseEntity.ok(result);
     }
-}
 
+    @PostMapping("/customers")
+    public ResponseEntity<Map<String, Object>> addCustomer(@RequestBody Map<String, String> request) {
+        String firstName = request.getOrDefault("first_name", "");
+        String lastName = request.getOrDefault("last_name", "");
+        String email = request.getOrDefault("email", "");
+        String phone = request.getOrDefault("phone", "");
+
+        if (firstName.isEmpty() || lastName.isEmpty() || email.isEmpty()) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("status", "error");
+            error.put("message", "first_name, last_name, and email are required");
+            return ResponseEntity.badRequest().body(error);
+        }
+
+        Map<String, Object> soapResponse = analyticsService.addCustomerViaSoap(firstName, lastName, email, phone);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "created");
+        result.put("soap_response", soapResponse);
+        return ResponseEntity.ok(result);
+    }
+}

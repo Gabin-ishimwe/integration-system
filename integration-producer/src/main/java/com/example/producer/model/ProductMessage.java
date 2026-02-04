@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.List;
 
 @Data
 @Builder
@@ -27,5 +28,5 @@ public class ProductMessage implements Serializable {
     private String source;
 
     @JsonProperty("data")
-    private Product data;
+    private List<Product> data;
 }

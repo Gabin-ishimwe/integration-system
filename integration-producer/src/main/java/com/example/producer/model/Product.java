@@ -21,6 +21,9 @@ public class Product implements Serializable {
     @JsonProperty("product_id")
     private String productId;
 
+    @JsonProperty("customer_id")
+    private String customerId;
+
     @JsonProperty("name")
     private String name;
 

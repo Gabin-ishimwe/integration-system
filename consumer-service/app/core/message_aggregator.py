@@ -16,7 +16,7 @@ logger = structlog.get_logger()
 
 ANALYTIC_SCHEMA = """
 {
-    "merge_id": $merge_id,
+    "merge_id": merge_id,
     "customer": {
         "id": customer.customer_id,
         "name": customer.first_name & " " & customer.last_name,
@@ -24,18 +24,18 @@ ANALYTIC_SCHEMA = """
         "phone": customer.phone,
         "status": customer.status
     },
-    "products": products.{
+    "products": $append([], products.{
         "id": product_id,
         "name": name,
         "category": category,
         "price": price,
         "stock_level": stock_level
-    },
+    }),
     "summary": {
         "total_products": $count(products),
         "total_value": $sum(products.price)
     },
-    "timestamp": $timestamp
+    "timestamp": timestamp
 }
 """
 
@@ -83,7 +83,6 @@ class MessageAggregator:
 
         customers = json.loads(customers_data)
         products = json.loads(products_data)
-
         logger.info(
             "Starting aggregation",
             customer_count=len(customers),
@@ -118,16 +117,19 @@ class MessageAggregator:
                 merged_payloads.append(merged)
         if merged_payloads:
             await self._send_to_analytics(merged_payloads)
-
         await self.redis.delete("customers", "products")
         logger.info("Aggregation complete")
 
     def _transform(self, customer: dict, products: list) -> dict:
         """Transform customer and products using JSONata analytic_schema."""
         expr = jsonata.Jsonata(ANALYTIC_SCHEMA)
-        expr.register_binding("merge_id", f"MERGE_{uuid4().hex[:8].upper()}")
-        expr.register_binding("timestamp", datetime.utcnow().isoformat() + "Z")
-        return expr.evaluate({"customer": customer, "products": products})
+        data = {
+            "customer": customer,
+            "products": products,
+            "merge_id": f"MERGE_{uuid4().hex[:8].upper()}",
+            "timestamp": datetime.utcnow().isoformat() + "Z"
+        }
+        return expr.evaluate(data)
 
     async def _get_token(self) -> str:
         if self.token:
@@ -148,13 +150,18 @@ class MessageAggregator:
     async def _send_to_analytics(self, merged_data: dict):
         """Send merged data to analytics service."""
         try:
-            token = await self._get_token()
+            # token = await self._get_token()
+            print(merged_data)
+            request_body = {
+                "batchNumber": uuid4().hex[:8].upper(),
+                "data": merged_data,
+            }
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{settings.analytics_service_url}/analytics/api/data",
-                    json=merged_data,
-                    headers={"Authorization": f"Bearer {token}"},
+                    json=request_body
                 )
+                print(response.json())
                 response.raise_for_status()
                 logger.info(
                     "Sent batch to analytics",

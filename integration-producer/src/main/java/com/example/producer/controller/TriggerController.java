@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -88,7 +89,6 @@ public class TriggerController {
         String email = request.getOrDefault("email", "john.doe@example.com");
         String phone = request.getOrDefault("phone", "+1234567890");
 
-        // Step 1: Add customer via SOAP
         CrmSoapClient.SoapResponse soapResponse = crmSoapClient.addCustomer(firstName, lastName, email, phone);
 
         Map<String, Object> result = new HashMap<>();
@@ -100,47 +100,13 @@ public class TriggerController {
         return ResponseEntity.ok(result);
     }
 
-    @PostMapping("/add-customer-and-fetch")
-    public ResponseEntity<Map<String, Object>> addCustomerAndFetch(@RequestBody Map<String, String> request) {
-        log.info("Manual trigger: adding customer via SOAP and re-fetching");
-
-        String firstName = request.getOrDefault("first_name", "John");
-        String lastName = request.getOrDefault("last_name", "Doe");
-        String email = request.getOrDefault("email", "john.doe@example.com");
-        String phone = request.getOrDefault("phone", "+1234567890");
-
-        // Step 1: Add customer via SOAP
-        CrmSoapClient.SoapResponse soapResponse = crmSoapClient.addCustomer(firstName, lastName, email, phone);
-
-        // Step 2: Re-fetch customers and publish to queue
-        int customersPublished = 0;
-        if (soapResponse.success()) {
-            customersPublished = fetchAndPublishCustomers();
-        }
-
-        Map<String, Object> result = new HashMap<>();
-        result.put("step1_soap_add", Map.of(
-            "success", soapResponse.success(),
-            "customer_id", soapResponse.customerId() != null ? soapResponse.customerId() : "N/A",
-            "message", soapResponse.message() != null ? soapResponse.message() : "N/A"
-        ));
-        result.put("step2_fetch_customers", Map.of(
-            "success", customersPublished > 0,
-            "customers_published", customersPublished
-        ));
-        result.put("timestamp", Instant.now().toString());
-
-        return ResponseEntity.ok(result);
-    }
-
     private int fetchAndPublishCustomers() {
         try {
             PagedResponse<Customer> response = crmClient.getCustomers(0, 100);
-            for (Customer customer : response.getContent()) {
-                messagePublisher.publishCustomer(customer);
-            }
-            log.info("Published {} customers", response.getContent().size());
-            return response.getContent().size();
+            List<Customer> customers = response.getContent();
+            messagePublisher.publishCustomers(customers);
+            log.info("Published {} customers", customers.size());
+            return customers.size();
         } catch (Exception e) {
             log.error("Failed to fetch/publish customers", e);
             return 0;
@@ -150,11 +116,10 @@ public class TriggerController {
     private int fetchAndPublishProducts() {
         try {
             PagedResponse<Product> response = inventoryClient.getProducts(0, 100);
-            for (Product product : response.getContent()) {
-                messagePublisher.publishProduct(product);
-            }
-            log.info("Published {} products", response.getContent().size());
-            return response.getContent().size();
+            List<Product> products = response.getContent();
+            messagePublisher.publishProducts(products);
+            log.info("Published {} products", products.size());
+            return products.size();
         } catch (Exception e) {
             log.error("Failed to fetch/publish products", e);
             return 0;
