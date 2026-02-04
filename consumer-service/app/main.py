@@ -2,9 +2,10 @@ import asyncio
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from app.api import health
-from app.core.message_aggregator import MessageAggregator
-from app.core.rabbitmq_consumer import RabbitMQConsumer
+from app.api import health, trigger
+from app.connectors import AnalyticsConnector
+from app.aggregators import CustomerProductAggregator
+from app.consumers import CustomerConsumer, ProductConsumer
 import structlog
 
 structlog.configure(
@@ -16,18 +17,33 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-aggregator = MessageAggregator()
-consumer = RabbitMQConsumer(aggregator)
+# Initialize components
+connector = AnalyticsConnector()
+aggregator = CustomerProductAggregator(connector)
+customer_consumer = CustomerConsumer(aggregator)
+product_consumer = ProductConsumer(aggregator)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting consumer service")
+
+    # Connect aggregator (Redis)
     await aggregator.connect()
-    await consumer.connect()
-    asyncio.create_task(consumer.start_consuming())
+
+    # Connect consumers (RabbitMQ) - share connection
+    await customer_consumer.connect()
+    await product_consumer.connect()
+
+    # Start consuming
+    asyncio.create_task(customer_consumer.start_consuming())
+    asyncio.create_task(product_consumer.start_consuming())
+
     yield
-    await consumer.close()
+
+    # Cleanup
+    await customer_consumer.close()
+    await product_consumer.close()
     await aggregator.close()
     logger.info("Consumer service stopped")
 
@@ -39,6 +55,7 @@ app = FastAPI(
 )
 
 app.include_router(health.router)
+app.include_router(trigger.router)
 
 
 @app.get("/")

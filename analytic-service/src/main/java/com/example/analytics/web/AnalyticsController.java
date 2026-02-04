@@ -49,10 +49,33 @@ public class AnalyticsController {
 
     @PostMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refreshAnalytics() {
-        analyticsService.triggerRefresh();
+        Map response = analyticsService.triggerRefresh();
 
         Map<String, Object> result = new HashMap<>();
         result.put("status", "refresh-triggered");
+        result.put("producer_response", response);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/refresh/customers")
+    public ResponseEntity<Map<String, Object>> refreshCustomers() {
+        log.info("Triggering customer refresh");
+        Map response = analyticsService.triggerFetchCustomers();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "customers-refresh-triggered");
+        result.put("producer_response", response);
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/refresh/products")
+    public ResponseEntity<Map<String, Object>> refreshProducts() {
+        log.info("Triggering product refresh");
+        Map response = analyticsService.triggerFetchProducts();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("status", "products-refresh-triggered");
+        result.put("producer_response", response);
         return ResponseEntity.ok(result);
     }
 

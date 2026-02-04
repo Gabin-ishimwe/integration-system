@@ -29,17 +29,20 @@ public class AnalyticsService {
     private final ProductRepository productRepository;
     private final RestTemplate restTemplate;
     private final String producerBaseUrl;
+    private final String consumerBaseUrl;
 
     public AnalyticsService(
         CustomerRepository customerRepository,
         ProductRepository productRepository,
         RestTemplate restTemplate,
-        @Value("${analytics.producer.base-url}") String producerBaseUrl
+        @Value("${analytics.producer.base-url}") String producerBaseUrl,
+        @Value("${analytics.consumer.base-url}") String consumerBaseUrl
     ) {
         this.customerRepository = customerRepository;
         this.productRepository = productRepository;
         this.restTemplate = restTemplate;
         this.producerBaseUrl = producerBaseUrl;
+        this.consumerBaseUrl = consumerBaseUrl;
     }
 
     @Transactional
@@ -136,9 +139,19 @@ public class AnalyticsService {
         return result;
     }
 
-    public void triggerRefresh() {
-        log.info("Triggering refresh via integration-producer /api/trigger/fetch-all");
-        restTemplate.postForObject(producerBaseUrl + "/api/trigger/fetch-all", null, Map.class);
+    public Map triggerRefresh() {
+        log.info("Triggering refresh via consumer-service /api/trigger/fetch-all");
+        return restTemplate.postForObject(consumerBaseUrl + "/api/trigger/fetch-all", null, Map.class);
+    }
+
+    public Map triggerFetchCustomers() {
+        log.info("Triggering fetch-customers via consumer-service");
+        return restTemplate.postForObject(consumerBaseUrl + "/api/trigger/fetch-customers", null, Map.class);
+    }
+
+    public Map triggerFetchProducts() {
+        log.info("Triggering fetch-products via consumer-service");
+        return restTemplate.postForObject(consumerBaseUrl + "/api/trigger/fetch-products", null, Map.class);
     }
 
     public AddCustomerSoapResponse addCustomerViaSoap(String firstName, String lastName, String email, String phone) {
