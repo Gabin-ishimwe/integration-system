@@ -1,9 +1,15 @@
 package com.example.analytics.web;
 
+import com.example.analytics.dto.AddCustomerSoapResponse;
 import com.example.analytics.dto.AnalyticsDtos;
+import com.example.analytics.dto.CustomerDTO;
+import com.example.analytics.entity.CustomerEntity;
 import com.example.analytics.service.AnalyticsService;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,24 +57,38 @@ public class AnalyticsController {
     }
 
     @PostMapping("/customers")
-    public ResponseEntity<Map<String, Object>> addCustomer(@RequestBody Map<String, String> request) {
-        String firstName = request.getOrDefault("first_name", "");
-        String lastName = request.getOrDefault("last_name", "");
-        String email = request.getOrDefault("email", "");
-        String phone = request.getOrDefault("phone", "");
+    public ResponseEntity<Map<String, Object>> addCustomer(@Valid @RequestBody CustomerDTO request) {
+        AddCustomerSoapResponse soapResponse = analyticsService.addCustomerViaSoap(
+            request.first_name(), request.last_name(), request.email(), request.phone());
 
-        if (firstName.isEmpty() || lastName.isEmpty() || email.isEmpty()) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("status", "error");
-            error.put("message", "first_name, last_name, and email are required");
-            return ResponseEntity.badRequest().body(error);
-        }
+        String customerId = soapResponse.customerId() != null ? soapResponse.customerId() : "CUST_UNKNOWN";
 
-        Map<String, Object> soapResponse = analyticsService.addCustomerViaSoap(firstName, lastName, email, phone);
+        CustomerEntity saved = analyticsService.saveCustomer(
+            customerId, request.first_name(), request.last_name(), request.email(), request.phone());
 
         Map<String, Object> result = new HashMap<>();
         result.put("status", "created");
-        result.put("soap_response", soapResponse);
+        result.put("customer_id", saved.getExternalId());
+        result.put("soap_success", soapResponse.soapSuccess());
+        result.put("soap_message", soapResponse.soapMessage());
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/customers/export")
+    public ResponseEntity<byte[]> exportCustomersCsv() {
+        String csv = analyticsService.exportCustomersToCsv();
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=customers.csv")
+            .contentType(MediaType.parseMediaType("text/csv"))
+            .body(csv.getBytes());
+    }
+
+    @GetMapping("/products/export")
+    public ResponseEntity<byte[]> exportProductsCsv() {
+        String csv = analyticsService.exportProductsToCsv();
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=products.csv")
+            .contentType(MediaType.parseMediaType("text/csv"))
+            .body(csv.getBytes());
     }
 }
