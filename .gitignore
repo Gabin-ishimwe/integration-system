@@ -129,3 +129,4 @@ dump.rdb
 *~
 
 **/sun-jaxb.episode
+integration-producer/src/main/java/META-INF/sun-jaxb.episode
