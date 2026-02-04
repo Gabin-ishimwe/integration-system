@@ -1,5 +1,6 @@
 package com.example.analytics.service;
 
+import com.example.analytics.dto.AddCustomerSoapResponse;
 import com.example.analytics.dto.AnalyticsDtos;
 import com.example.analytics.entity.CustomerEntity;
 import com.example.analytics.entity.ProductEntity;
@@ -71,8 +72,8 @@ public class AnalyticsService {
             }
 
             if (customer.getId() != null) {
-                productRepository.deleteAll(customer.getProducts());
                 customer.getProducts().clear();
+                customerRepository.saveAndFlush(customer);
             }
 
             for (AnalyticsDtos.Product p : record.products()) {
@@ -140,7 +141,7 @@ public class AnalyticsService {
         restTemplate.postForObject(producerBaseUrl + "/api/trigger/fetch-all", null, Map.class);
     }
 
-    public Map<String, Object> addCustomerViaSoap(String firstName, String lastName, String email, String phone) {
+    public AddCustomerSoapResponse addCustomerViaSoap(String firstName, String lastName, String email, String phone) {
         log.info("Adding customer via SOAP: {} {}", firstName, lastName);
 
         Map<String, String> request = new HashMap<>();
@@ -149,13 +150,73 @@ public class AnalyticsService {
         request.put("email", email);
         request.put("phone", phone);
 
-        @SuppressWarnings("unchecked")
-        Map<String, Object> response = restTemplate.postForObject(
+        return restTemplate.postForObject(
             producerBaseUrl + "/api/trigger/add-customer-soap",
             request,
-            Map.class
+            AddCustomerSoapResponse.class
         );
+    }
 
-        return response;
+    @Transactional
+    public CustomerEntity saveCustomer(String externalId, String firstName, String lastName, String email, String phone) {
+        CustomerEntity customer = new CustomerEntity();
+        customer.setExternalId(externalId);
+        customer.setName(firstName + " " + lastName);
+        customer.setEmail(email);
+        customer.setPhone(phone);
+        customer.setStatus("ACTIVE");
+        return customerRepository.save(customer);
+    }
+
+    @Transactional(readOnly = true)
+    public String exportCustomersToCsv() {
+        List<CustomerEntity> customers = customerRepository.findAll();
+        StringBuilder csv = new StringBuilder();
+        csv.append("id,name,email,phone,status,total_products,total_value\n");
+
+        for (CustomerEntity customer : customers) {
+            BigDecimal totalValue = customer.getProducts().stream()
+                .map(ProductEntity::getPrice)
+                .filter(p -> p != null)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+            csv.append(String.format("%s,%s,%s,%s,%s,%d,%s\n",
+                escapeCsv(customer.getExternalId()),
+                escapeCsv(customer.getName()),
+                escapeCsv(customer.getEmail()),
+                escapeCsv(customer.getPhone()),
+                escapeCsv(customer.getStatus()),
+                customer.getProducts().size(),
+                totalValue.toPlainString()
+            ));
+        }
+        return csv.toString();
+    }
+
+    @Transactional(readOnly = true)
+    public String exportProductsToCsv() {
+        List<ProductEntity> products = productRepository.findAll();
+        StringBuilder csv = new StringBuilder();
+        csv.append("id,name,category,price,stock_level,customer_id\n");
+
+        for (ProductEntity product : products) {
+            csv.append(String.format("%s,%s,%s,%s,%d,%s\n",
+                escapeCsv(product.getExternalId()),
+                escapeCsv(product.getName()),
+                escapeCsv(product.getCategory()),
+                product.getPrice() != null ? product.getPrice().toPlainString() : "",
+                product.getStockLevel() != null ? product.getStockLevel() : 0,
+                escapeCsv(product.getCustomer().getExternalId())
+            ));
+        }
+        return csv.toString();
+    }
+
+    private String escapeCsv(String value) {
+        if (value == null) return "";
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            return "\"" + value.replace("\"", "\"\"") + "\"";
+        }
+        return value;
     }
 }
