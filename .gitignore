@@ -127,3 +127,5 @@ dump.rdb
 *.temp
 *.swp
 *~
+
+**/sun-jaxb.episode

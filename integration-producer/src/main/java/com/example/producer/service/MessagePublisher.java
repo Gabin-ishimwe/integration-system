@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -33,27 +34,27 @@ public class MessagePublisher {
         this.rabbitTemplate = rabbitTemplate;
     }
 
-    public void publishCustomer(Customer customer) {
+    public void publishCustomers(List<Customer> customers) {
         CustomerMessage message = CustomerMessage.builder()
             .correlationId(UUID.randomUUID().toString())
             .timestamp(Instant.now())
             .source("integration-producer")
-            .data(customer)
+            .data(customers)
             .build();
 
         rabbitTemplate.convertAndSend(exchangeName, customerRoutingKey, message);
-        log.debug("Published customer: {}", customer.getCustomerId());
+        log.info("Published {} customers", customers.size());
     }
 
-    public void publishProduct(Product product) {
+    public void publishProducts(List<Product> products) {
         ProductMessage message = ProductMessage.builder()
             .correlationId(UUID.randomUUID().toString())
             .timestamp(Instant.now())
             .source("integration-producer")
-            .data(product)
+            .data(products)
             .build();
 
         rabbitTemplate.convertAndSend(exchangeName, inventoryRoutingKey, message);
-        log.debug("Published product: {}", product.getProductId());
+        log.info("Published {} products", products.size());
     }
 }
