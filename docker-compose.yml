@@ -36,67 +36,86 @@ services:
     networks:
       - integration-network
 
-  mock-service:
-    build:
-      context: ./mock-service
-      dockerfile: Dockerfile
-    container_name: integration-mock-service
-    ports:
-      - "8080:8080"
+  analytic-postgres:
+    image: postgres:15-alpine
+    container_name: analytic-postgres
     environment:
-      SPRING_PROFILES_ACTIVE: docker
-    depends_on:
-      - redis
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: analytics_user
+      POSTGRES_PASSWORD: analytics_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - analytic_postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD-SHELL", "pg_isready -U analytics_user -d analytics_db"]
       interval: 30s
       timeout: 10s
       retries: 5
     networks:
       - integration-network
 
-  integration-producer:
-    build:
-      context: ./integration-producer
-      dockerfile: Dockerfile
-    container_name: integration-producer
-    ports:
-      - "8081:8081"
-    environment:
-      SPRING_PROFILES_ACTIVE: docker
-      SPRING_RABBITMQ_HOST: rabbitmq
-      SPRING_REDIS_HOST: redis
-      MOCK_SERVICE_URL: http://mock-service:8080
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mock-service:
-        condition: service_healthy
-    networks:
-      - integration-network
-
-  consumer-service:
-    build:
-      context: ./consumer-service
-      dockerfile: Dockerfile
-    container_name: integration-consumer
-    ports:
-      - "8082:8082"
-    environment:
-      RABBITMQ_HOST: rabbitmq
-      REDIS_HOST: redis
-      MOCK_SERVICE_URL: http://mock-service:8080
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-      mock-service:
-        condition: service_healthy
-    networks:
-      - integration-network
+#  mock-service:
+#    build:
+#      context: ./mock-service
+#      dockerfile: Dockerfile
+#    container_name: integration-mock-service
+#    ports:
+#      - "8080:8080"
+#    environment:
+#      SPRING_PROFILES_ACTIVE: docker
+#    depends_on:
+#      - redis
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 5
+#    networks:
+#      - integration-network
+#
+#  integration-producer:
+#    build:
+#      context: ./integration-producer
+#      dockerfile: Dockerfile
+#    container_name: integration-producer
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      SPRING_PROFILES_ACTIVE: docker
+#      SPRING_RABBITMQ_HOST: rabbitmq
+#      SPRING_REDIS_HOST: redis
+#      MOCK_SERVICE_URL: http://mock-service:8080
+#    depends_on:
+#      rabbitmq:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#      mock-service:
+#        condition: service_healthy
+#    networks:
+#      - integration-network
+#
+#  consumer-service:
+#    build:
+#      context: ./consumer-service
+#      dockerfile: Dockerfile
+#    container_name: integration-consumer
+#    ports:
+#      - "8082:8082"
+#    environment:
+#      RABBITMQ_HOST: rabbitmq
+#      REDIS_HOST: redis
+#      MOCK_SERVICE_URL: http://mock-service:8080
+#    depends_on:
+#      rabbitmq:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#      mock-service:
+#        condition: service_healthy
+#    networks:
+#      - integration-network
 
 networks:
   integration-network:
@@ -105,3 +124,4 @@ networks:
 volumes:
   rabbitmq_data:
   redis_data:
+  analytic_postgres_data:
