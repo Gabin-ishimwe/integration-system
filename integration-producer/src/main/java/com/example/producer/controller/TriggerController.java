@@ -3,6 +3,7 @@ package com.example.producer.controller;
 import com.example.producer.client.CrmClient;
 import com.example.producer.client.CrmSoapClient;
 import com.example.producer.client.InventoryClient;
+import com.example.producer.model.AddCustomerSoapResponse;
 import com.example.producer.model.Customer;
 import com.example.producer.model.PagedResponse;
 import com.example.producer.model.Product;
@@ -81,7 +82,7 @@ public class TriggerController {
     }
 
     @PostMapping("/add-customer-soap")
-    public ResponseEntity<Map<String, Object>> addCustomerViaSoap(@RequestBody Map<String, String> request) {
+    public ResponseEntity<AddCustomerSoapResponse> addCustomerViaSoap(@RequestBody Map<String, String> request) {
         log.info("Manual trigger: adding customer via SOAP");
 
         String firstName = request.getOrDefault("first_name", "John");
@@ -91,13 +92,14 @@ public class TriggerController {
 
         CrmSoapClient.SoapResponse soapResponse = crmSoapClient.addCustomer(firstName, lastName, email, phone);
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("soap_success", soapResponse.success());
-        result.put("customer_id", soapResponse.customerId());
-        result.put("soap_message", soapResponse.message());
-        result.put("timestamp", Instant.now().toString());
+        AddCustomerSoapResponse response = new AddCustomerSoapResponse(
+            soapResponse.success(),
+            soapResponse.customerId(),
+            soapResponse.message(),
+            Instant.now().toString()
+        );
 
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(response);
     }
 
     private int fetchAndPublishCustomers() {
