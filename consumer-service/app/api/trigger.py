@@ -11,8 +11,6 @@ logger = structlog.get_logger()
 
 router = APIRouter(prefix="/api/trigger", tags=["trigger"])
 
-PRODUCER_URL = "http://localhost:8082"  # integration-producer
-
 
 @router.post("/fetch-all")
 async def trigger_fetch_all():
@@ -20,7 +18,7 @@ async def trigger_fetch_all():
     logger.info("Triggering fetch-all from integration-producer")
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(f"{PRODUCER_URL}/api/callback/fetch-all")
+        response = await client.post(f"{settings.producer_base_url}/api/callback/fetch-all")
         return response.json()
 
 
@@ -30,7 +28,7 @@ async def trigger_fetch_customers():
     logger.info("Triggering fetch-customers from integration-producer")
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(f"{PRODUCER_URL}/api/callback/fetch-customers")
+        response = await client.post(f"{settings.producer_base_url}/api/callback/fetch-customers")
         return response.json()
 
 
@@ -40,5 +38,5 @@ async def trigger_fetch_products():
     logger.info("Triggering fetch-products from integration-producer")
 
     async with httpx.AsyncClient() as client:
-        response = await client.post(f"{PRODUCER_URL}/api/callback/fetch-products")
+        response = await client.post(f"{settings.producer_base_url}/api/callback/fetch-products")
         return response.json()
