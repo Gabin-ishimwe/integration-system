@@ -16,21 +16,21 @@ jobs:
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: gabinishimwe
+          username: ishimwegabin
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and push images
         run: |
           # Build and push each service
-          docker build -t gabinishimwe/integration-mock-service:latest ./mock-service
-          docker build -t gabinishimwe/integration-producer:latest ./integration-producer
-          docker build -t gabinishimwe/integration-consumer-service:latest ./consumer-service
-          docker build -t gabinishimwe/integration-analytic-service:latest ./analytic-service
+          docker build -t ishimwegabin/integration-mock-service:latest ./mock-service
+          docker build -t ishimwegabin/integration-producer:latest ./integration-producer
+          docker build -t ishimwegabin/integration-consumer-service:latest ./consumer-service
+          docker build -t ishimwegabin/integration-analytic-service:latest ./analytic-service
 
-          docker push gabinishimwe/integration-mock-service:latest
-          docker push gabinishimwe/integration-producer:latest
-          docker push gabinishimwe/integration-consumer-service:latest
-          docker push gabinishimwe/integration-analytic-service:latest
+          docker push ishimwegabin/integration-mock-service:latest
+          docker push ishimwegabin/integration-producer:latest
+          docker push ishimwegabin/integration-consumer-service:latest
+          docker push ishimwegabin/integration-analytic-service:latest
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
