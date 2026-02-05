@@ -164,7 +164,7 @@ public class AnalyticsService {
         request.put("phone", phone);
 
         return restTemplate.postForObject(
-            producerBaseUrl + "/api/trigger/add-customer-soap",
+            producerBaseUrl + "/api/callback/add-customer-soap",
             request,
             AddCustomerSoapResponse.class
         );

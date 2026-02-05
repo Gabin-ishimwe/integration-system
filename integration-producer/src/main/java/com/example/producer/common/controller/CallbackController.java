@@ -1,5 +1,6 @@
 package com.example.producer.common.controller;
 
+import com.example.producer.integrations.crm.model.AddCustomerSoapResponse;
 import com.example.producer.integrations.crm.service.CrmService;
 import com.example.producer.integrations.inventory.service.InventoryService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -77,5 +78,19 @@ public class CallbackController {
         result.put("timestamp", Instant.now().toString());
 
         return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/add-customer-soap")
+    public ResponseEntity<AddCustomerSoapResponse> addCustomerViaSoap(@RequestBody Map<String, String> request) {
+        log.info("Callback: adding customer via SOAP");
+
+        String firstName = request.get("first_name");
+        String lastName = request.get("last_name");
+        String email = request.get("email");
+        String phone = request.get("phone");
+
+        AddCustomerSoapResponse response = crmService.addCustomerViaSoap(firstName, lastName, email, phone);
+
+        return ResponseEntity.ok(response);
     }
 }
