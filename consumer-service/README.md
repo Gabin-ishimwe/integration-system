@@ -96,3 +96,56 @@ OpenAPI JSON: http://localhost:8084/openapi.json
 4. Data is transformed using JSONata schema
 5. Merged data is sent to analytics service
 6. Redis keys are cleared after successful send
+
+## JSONata Transformation Example
+
+We use JSONata to dynamically transform JSON structures. Here's how it works in `app/mappings/analytics_schema.py`:
+
+**Input data:**
+```json
+{
+  "customer": {
+    "customer_id": "C001",
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com"
+  },
+  "products": [
+    { "product_id": "P1", "name": "Widget", "price": 29.99 },
+    { "product_id": "P2", "name": "Gadget", "price": 49.99 }
+  ]
+}
+```
+
+**JSONata schema:**
+```jsonata
+{
+  "customer": {
+    "id": customer.customer_id,
+    "name": customer.first_name & " " & customer.last_name
+  },
+  "products": products.{ "id": product_id, "name": name },
+  "summary": {
+    "total_products": $count(products),
+    "total_value": $sum(products.price)
+  }
+}
+```
+
+**Output:**
+```json
+{
+  "customer": { "id": "C001", "name": "John Doe" },
+  "products": [
+    { "id": "P1", "name": "Widget" },
+    { "id": "P2", "name": "Gadget" }
+  ],
+  "summary": { "total_products": 2, "total_value": 79.98 }
+}
+```
+
+Key JSONata features used:
+- **Path navigation**: `customer.first_name` accesses nested fields
+- **String concatenation**: `&` operator joins strings
+- **Array mapping**: `products.{ ... }` transforms each item
+- **Aggregations**: `$count()`, `$sum()` for calculations
