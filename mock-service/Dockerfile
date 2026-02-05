@@ -6,7 +6,7 @@ COPY src ./src
 RUN apk add --no-cache maven && \
     mvn clean package -DskipTests
 
-FROM eclipse-temurin:17-jre
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 RUN apk add --no-cache curl
