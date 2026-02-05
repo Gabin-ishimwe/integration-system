@@ -49,15 +49,22 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="consumer-service",
+    title="Consumer Service API",
+    description="Consumes messages from RabbitMQ queues (customers and products), aggregates data using Redis, and forwards merged analytics data to the Analytic Service.",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_tags=[
+        {"name": "health", "description": "Health check endpoints"},
+        {"name": "trigger", "description": "Trigger endpoints to initiate data fetch via integration-producer"}
+    ]
 )
 
 app.include_router(health.router)
 app.include_router(trigger.router)
 
 
-@app.get("/")
+@app.get("/", tags=["health"], summary="Root endpoint", description="Returns service status information")
 async def root():
     return {"service": "consumer-service", "status": "running"}
