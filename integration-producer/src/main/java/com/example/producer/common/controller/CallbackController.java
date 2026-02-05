@@ -2,6 +2,9 @@ package com.example.producer.common.controller;
 
 import com.example.producer.integrations.crm.service.CrmService;
 import com.example.producer.integrations.inventory.service.InventoryService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/callback")
+@Tag(name = "Callback", description = "Callback endpoints to trigger data fetching and publishing")
 public class CallbackController {
 
     private static final Logger log = LoggerFactory.getLogger(CallbackController.class);
@@ -25,6 +29,8 @@ public class CallbackController {
         this.inventoryService = inventoryService;
     }
 
+    @Operation(summary = "Fetch all data", description = "Fetches customers from CRM and products from Inventory, then publishes both to RabbitMQ")
+    @ApiResponse(responseCode = "200", description = "Data fetched and published successfully")
     @PostMapping("/fetch-all")
     public ResponseEntity<Map<String, Object>> fetchAll() {
         log.info("Callback: fetching all data");
@@ -41,6 +47,8 @@ public class CallbackController {
         return ResponseEntity.ok(result);
     }
 
+    @Operation(summary = "Fetch customers", description = "Fetches customers from CRM service and publishes to RabbitMQ customer queue")
+    @ApiResponse(responseCode = "200", description = "Customers fetched and published successfully")
     @PostMapping("/fetch-customers")
     public ResponseEntity<Map<String, Object>> fetchCustomers() {
         log.info("Callback: fetching customers");
@@ -55,6 +63,8 @@ public class CallbackController {
         return ResponseEntity.ok(result);
     }
 
+    @Operation(summary = "Fetch products", description = "Fetches products from Inventory service and publishes to RabbitMQ product queue")
+    @ApiResponse(responseCode = "200", description = "Products fetched and published successfully")
     @PostMapping("/fetch-products")
     public ResponseEntity<Map<String, Object>> fetchProducts() {
         log.info("Callback: fetching products");
